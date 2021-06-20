@@ -19,6 +19,7 @@ define(['mainTabsManager', Dashboard.getConfigurationResourceUrl('helper_functio
 
     var custom_chart = null;
     var color_list = [];
+    var tabulator_table = null;
 
     ApiClient.sendCustomQuery = function (url_to_get, query_data) {
         var post_data = JSON.stringify(query_data);
@@ -356,7 +357,140 @@ define(['mainTabsManager', Dashboard.getConfigurationResourceUrl('helper_functio
         });
     }
 
+    function build_table(view, result) {
+
+        /*
+        var table_row_html = "";
+
+        // add table heading
+        var result_ladels = result["colums"];
+        table_row_html += "<tr class='detailTableBodyRow detailTableBodyRow-shaded'>";
+        for (var index = 0; index < result_ladels.length; ++index) {
+            var colum_name = result_ladels[index];
+            table_row_html += "<td style='white-space: nowrap;'><strong>" + colum_name + "</strong></td>";
+        }
+        table_row_html += "</tr>";
+
+        // add the data
+        var result_data_rows = result["results"];
+        for (var index2 = 0; index2 < result_data_rows.length; ++index2) {
+            var row_data = result_data_rows[index2];
+            table_row_html += "<tr class='detailTableBodyRow detailTableBodyRow-shaded'>";
+
+            for (var index3 = 0; index3 < row_data.length; ++index3) {
+                var cell_data = row_data[index3];
+                table_row_html += "<td style='white-space: nowrap;'>" + cell_data + "</td>";
+            }
+
+            table_row_html += "</tr>";
+        }
+
+        var table_area_div = view.querySelector('#table_area_div');
+        table_area_div.setAttribute("style", "overflow:hidden;");
+
+        var table_body = view.querySelector('#custom_query_results');
+        table_body.innerHTML = table_row_html;
+
+        table_area_div.setAttribute("style", "overflow:auto;");
+        */
+
+        /*
+        let isDown = false;
+        let startX;
+        let scrollLeft;
+    
+        table_area_div.addEventListener('mousedown', (e) => {
+            isDown = true;
+            //table_area_div.classList.add('active');
+            startX = e.pageX - table_area_div.offsetLeft;
+            scrollLeft = table_area_div.scrollLeft;
+        });
+        table_area_div.addEventListener('mouseleave', () => {
+            isDown = false;
+            //table_area_div.classList.remove('active');
+        });
+        table_area_div.addEventListener('mouseup', () => {
+            isDown = false;
+            //table_area_div.classList.remove('active');
+        });
+        table_area_div.addEventListener('mousemove', (e) => {
+            if (!isDown) return;
+            e.preventDefault();
+            const x = e.pageX - table_area_div.offsetLeft;
+            const walk = (x - startX) * 1; //scroll-fast, for now set to 1 for 1:1 scrolling
+            table_area_div.scrollLeft = scrollLeft - walk;
+            //console.log(walk);
+        });
+        */
+
+
+        // http://tabulator.info
+        // https://unpkg.com/tabulator-tables@4.9.3/dist/js/tabulator.min.js
+        require([Dashboard.getConfigurationResourceUrl('tabulator.min.js')], function (Tabulator) {
+
+            var table_data = [];
+            for (var row_i = 0; row_i < result["results"].length; ++row_i) {
+                var row = result["results"][row_i];
+                var row_info = {};
+                for (var col_i = 0; col_i < row.length; ++col_i) {
+                    row_info[result["colums"][col_i]] = row[col_i];
+                }
+                table_data.push(row_info);
+            }
+
+            var table_columns = [];
+            for (var col_index = 0; col_index < result["colums"].length; ++col_index) {
+                var col_row_name = result["colums"][col_index];
+                var col_row = {
+                    title: col_row_name,
+                    field: col_row_name
+                };
+                table_columns.push(col_row);
+            }
+
+            /*
+            var tabledata = [
+                { id: 1, name: "Oli Bob", age: "12", col: "red", dob: "" },
+                { id: 2, name: "Mary May", age: "1", col: "blue", dob: "14/05/1982" },
+                { id: 3, name: "Christine Lobowski", age: "42", col: "green", dob: "22/05/1982" },
+                { id: 4, name: "Brendon Philips", age: "125", col: "orange", dob: "01/08/1980" },
+                { id: 5, name: "Margret Marmajuke", age: "16", col: "yellow", dob: "31/01/1999" },
+            ];
+
+            var colinfo = [ //Define Table Columns
+                { title: "Name", field: "name", width: 150 },
+                { title: "Age", field: "age", hozAlign: "left", formatter: "progress" },
+                { title: "Favourite Color", field: "col" },
+                { title: "Date Of Birth", field: "dob", sorter: "date", hozAlign: "center" },
+            ];
+            */
+
+            if (tabulator_table) {
+                console.log("destroy() existing table");
+                tabulator_table.destroy();
+                tabulator_table = null;
+            }
+            tabulator_table = new Tabulator("#results_table", {
+                height: 305, // set height of table (in CSS or here), this enables the Virtual DOM and improves render speed dramatically (can be any valid css height value)
+                data: table_data,
+                layout: "fitColumns", //fit columns to width of table (optional)
+                columns: table_columns,
+                rowClick: function (e, row) { //trigger an alert message when the row is clicked
+                    alert("Row " + row.getData().id + " Clicked!!!!");
+                }
+            });
+
+            tabulator_table.redraw();
+
+        });
+
+    }
+
     return function (view, params) {
+
+        if (tabulator_table) {
+            tabulator_table.redraw();
+        }
 
         // init code here
         view.addEventListener('viewshow', function (e) {
@@ -381,8 +515,13 @@ define(['mainTabsManager', Dashboard.getConfigurationResourceUrl('helper_functio
 
                 var message_div = view.querySelector('#query_result_message');
                 message_div.innerHTML = "";
-                var table_body = view.querySelector('#custom_query_results');
-                table_body.innerHTML = "";
+                //var table_body = view.querySelector('#custom_query_results');
+                //table_body.innerHTML = "";
+                if (tabulator_table) {
+                    console.log("destroy() existing table");
+                    tabulator_table.destroy();
+                    tabulator_table = null;
+                }
 
                 var url = "user_usage_stats/submit_custom_query?stamp=" + new Date().getTime();
                 url = ApiClient.getUrl(url);
@@ -403,69 +542,8 @@ define(['mainTabsManager', Dashboard.getConfigurationResourceUrl('helper_functio
                         message_div.innerHTML = message;
                     }
                     else {
-                        // build the table
-                        var table_row_html = "";
-
-                        // add table heading
-                        var result_ladels = result["colums"];
-                        table_row_html += "<tr class='detailTableBodyRow detailTableBodyRow-shaded'>";
-                        for (var index = 0; index < result_ladels.length; ++index) {
-                            var colum_name = result_ladels[index];
-                            table_row_html += "<td style='white-space: nowrap;'><strong>" + colum_name + "</strong></td>";
-                        }
-                        table_row_html += "</tr>";
-
-                        // add the data
-                        var result_data_rows = result["results"];
-                        for (var index2 = 0; index2 < result_data_rows.length; ++index2) {
-                            var row_data = result_data_rows[index2];
-                            table_row_html += "<tr class='detailTableBodyRow detailTableBodyRow-shaded'>";
-
-                            for (var index3 = 0; index3 < row_data.length; ++index3) {
-                                var cell_data = row_data[index3];
-                                table_row_html += "<td style='white-space: nowrap;'>" + cell_data + "</td>";
-                            }
-
-                            table_row_html += "</tr>";
-                        }
-
-                        var table_area_div = view.querySelector('#table_area_div');
-                        table_area_div.setAttribute("style", "overflow:hidden;");
-                        
-                        var table_body = view.querySelector('#custom_query_results');
-                        table_body.innerHTML = table_row_html;
-
-                        table_area_div.setAttribute("style", "overflow:auto;");
-
-                        /*
-                        let isDown = false;
-                        let startX;
-                        let scrollLeft;
-
-                        table_area_div.addEventListener('mousedown', (e) => {
-                            isDown = true;
-                            //table_area_div.classList.add('active');
-                            startX = e.pageX - table_area_div.offsetLeft;
-                            scrollLeft = table_area_div.scrollLeft;
-                        });
-                        table_area_div.addEventListener('mouseleave', () => {
-                            isDown = false;
-                            //table_area_div.classList.remove('active');
-                        });
-                        table_area_div.addEventListener('mouseup', () => {
-                            isDown = false;
-                            //table_area_div.classList.remove('active');
-                        });
-                        table_area_div.addEventListener('mousemove', (e) => {
-                            if (!isDown) return;
-                            e.preventDefault();
-                            const x = e.pageX - table_area_div.offsetLeft;
-                            const walk = (x - startX) * 1; //scroll-fast, for now set to 1 for 1:1 scrolling
-                            table_area_div.scrollLeft = scrollLeft - walk;
-                            //console.log(walk);
-                        });
-                        */
-
+                        // show results
+                        build_table(view, result);
                         build_chart(view, result);
                     }
                 });
@@ -490,7 +568,8 @@ define(['mainTabsManager', Dashboard.getConfigurationResourceUrl('helper_functio
                         ReplaceName: false,
                         ChartType: 1,
                         ChartLabelColumn: "Date",
-                        ChartDataCloumn: "PlayTime"
+                        ChartDataCloumn: "PlayTime",
+                        TableType: 2
                     };
 
                     config.CustomQueries.push(new_custom_query);

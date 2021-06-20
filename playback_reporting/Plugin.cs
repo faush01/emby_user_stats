@@ -85,6 +85,11 @@ namespace playback_reporting
                 },
                 new PluginPageInfo
                 {
+                    Name = "tabulator.min.js",
+                    EmbeddedResourcePath = GetType().Namespace + ".Pages.tabulator.min.js"
+                },
+                new PluginPageInfo
+                {
                     Name = "hourly_usage_report",
                     EmbeddedResourcePath = GetType().Namespace + ".Pages.hourly_usage_report.html"
                 },
